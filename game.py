@@ -8,7 +8,7 @@ from common import (
     DECK,
     STARTING_HAND_SIZE,
     Card,
-    Hand,
+    Field,
     PlayerAction,
     Set,
     dprint,
@@ -21,7 +21,7 @@ class Game:
         self.players = players
         self.deck = DECK[:]
         self.current_player = 0
-        self.field: Hand = []
+        self.field: Field = set()
 
         shuffle(self.deck)
         self.deal_cards()
@@ -39,16 +39,16 @@ class Game:
                 self._give_card(player)
 
     def add_to_field(self, card: Card):
-        self.field.append(card)
+        self.field.add(card)
 
     def _is_valid_set(self, card_set: Set) -> bool:
         if len(card_set) < 3:
             return False
 
-        if all(card.rank == card_set[0].rank for card in card_set):
+        if len({card.rank for card in card_set}) == 1:
             return True
 
-        elif all(card.suit == card_set[0].suit for card in card_set):
+        elif len({card.suit for card in card_set}) == 1:
             ranks = sorted(card.get_value() for card in card_set)
 
             if len(set(ranks)) != len(card_set):
@@ -87,7 +87,7 @@ class Game:
             raise ValueError("Chosen discard is not in player's hand")
 
         player.remove_card(chosen_discard)
-        self.field.append(chosen_discard)
+        self.field.add(chosen_discard)
 
 
 def main():
@@ -95,11 +95,11 @@ def main():
     opponent = RandomPlayer("Player 2")
 
     game = Game([player, opponent])
-    game.field = [game.deck.pop() for _ in range(5)]
+    game.field = {game.deck.pop() for _ in range(5)}
     dprint(game)
 
     action = player.decide_action(
-        game.field, opponent_hand_sizes=[0], opponent_sets=[[]]
+        game.field, opponent_hand_sizes=[0], opponent_sets=[set()]
     )
     dprint(action)
     game.handle_action(action, player)

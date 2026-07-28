@@ -1,6 +1,6 @@
-from random import randint
+from random import choice, randint
 
-from common import Card, PlayerAction, Sets
+from common import Card, Field, PlayerAction, Sets
 
 from .player import AbstractPlayer
 
@@ -8,7 +8,7 @@ from .player import AbstractPlayer
 class RandomPlayer(AbstractPlayer):
     def decide_action(
         self,
-        field: list[Card],
+        field: Field,
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> PlayerAction:
@@ -16,8 +16,8 @@ class RandomPlayer(AbstractPlayer):
 
     def choose_discard(
         self,
-        field: list[Card],
+        field: Field,
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> Card:
-        return self.hand[0]
+        return choice(list(self.hand))

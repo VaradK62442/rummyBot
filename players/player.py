@@ -4,14 +4,14 @@ Player abstract class
 
 from abc import ABC, abstractmethod
 
-from common import Card, Hand, PlayerAction, Sets, score_set, score_sets
+from common import Card, Field, Hand, PlayerAction, Sets, score_set, score_sets
 
 
 class AbstractPlayer(ABC):
     def __init__(self, name: str):
         self.name = name
-        self.hand: Hand = []
-        self.sets: Sets = []
+        self.hand: Hand = set()
+        self.sets: Sets = set()
 
     def __str__(self) -> str:
         return f"{self.name}: [{', '.join(str(card) for card in self.hand)}]"
@@ -25,7 +25,7 @@ class AbstractPlayer(ABC):
         return score_sets(self.sets) - score_set(self.hand)
 
     def add_card(self, card: Card):
-        self.hand.append(card)
+        self.hand.add(card)
 
     def remove_card(self, card: Card):
         assert card in self.hand
@@ -34,7 +34,7 @@ class AbstractPlayer(ABC):
     @abstractmethod
     def decide_action(
         self,
-        field: list[Card],
+        field: Field,
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> PlayerAction:
@@ -43,7 +43,7 @@ class AbstractPlayer(ABC):
     @abstractmethod
     def choose_discard(
         self,
-        field: list[Card],
+        field: Field,
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> Card:

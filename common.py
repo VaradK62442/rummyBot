@@ -4,9 +4,10 @@ Common constants, functions, configs.
 
 from enum import StrEnum
 
-type Hand = list[Card]
-type Set = list[Card]
-type Sets = list[list[Card]]
+type Hand = set[Card]
+type Set = set[Card]
+type Sets = set[set[Card]]
+type Field = set[Card]
 
 DEBUG = True
 STARTING_HAND_SIZE = 7
@@ -71,6 +72,9 @@ class Card:
             return False
         return self.suit == other.suit and self.rank == other.rank
 
+    def __hash__(self) -> int:
+        return hash((self.suit, self.rank))
+
     def get_value(self):
         match self.rank:
             case Rank.ACE:
@@ -104,7 +108,7 @@ class Card:
 DECK = [Card(suit, rank) for suit in Suit for rank in Rank]
 
 
-def score_set(card_set: list[Card]) -> int:
+def score_set(card_set: Set) -> int:
     return sum(10 if card.get_value() >= 10 else 5 for card in card_set)
 
 
