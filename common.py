@@ -7,7 +7,7 @@ from enum import StrEnum
 type Hand = set[Card]
 type Set = set[Card]
 type Sets = set[set[Card]]
-type Field = set[Card]
+type Field = list[Card]
 
 DEBUG = True
 STARTING_HAND_SIZE = 7
@@ -66,6 +66,9 @@ class Card:
 
     def __str__(self):
         return f"{self.rank}/{self.suit}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):

@@ -10,18 +10,25 @@ from common import (
     Card,
     Field,
     PlayerAction,
-    Set,
+    Sets,
     dprint,
 )
 from players import AbstractPlayer, RandomPlayer
+from set_utility import (
+    can_make_set_with,
+    get_longest_set,
+    is_valid_rank_set,
+    is_valid_set,
+    is_valid_suit_set,
+)
 
 
 class Game:
     def __init__(self, players: list[AbstractPlayer]):
         self.players = players
         self.deck = DECK[:]
-        self.current_player = 0
-        self.field: Field = set()
+        self.current_player_idx = 0
+        self.field: Field = []
 
         shuffle(self.deck)
         self.deal_cards()
@@ -39,43 +46,44 @@ class Game:
                 self._give_card(player)
 
     def add_to_field(self, card: Card):
-        self.field.add(card)
+        self.field.append(card)
 
-    def _is_valid_set(self, card_set: Set) -> bool:
-        if len(card_set) < 3:
-            return False
+    def _make_sets(
+        self, player_sets: Sets, player: AbstractPlayer, mandatory_card: Card
+    ):
+        # check mandatory card appears in at least one set
+        if not any(mandatory_card in set for set in player_sets):
+            raise ValueError("Mandatory card not in any set")
 
-        if len({card.rank for card in card_set}) == 1:
-            return True
+        for set in player_sets:
+            if not is_valid_set(set):
+                raise ValueError("Invalid set")
 
-        elif len({card.suit for card in card_set}) == 1:
-            ranks = sorted(card.get_value() for card in card_set)
+            player.sets.add(set)
+            for card in set:
+                # will (rightfully) error if same card is submitted in two sets
+                player.remove_card(card)
 
-            if len(set(ranks)) != len(card_set):
-                return False
-
-            ranks = set(ranks)
-
-            if 1 in ranks:
-                alt_ranks = sorted(14 if r == 1 else r for r in ranks)
-
-                if max(alt_ranks) - min(alt_ranks) != len(alt_ranks) - 1:
-                    return False
-
-            elif max(ranks) - min(ranks) != len(ranks) - 1:
-                return False
-
-            return True
-
-        return False
-
-    def handle_action(self, action: PlayerAction, player: AbstractPlayer):
+    def _handle_action(self, action: PlayerAction, player: AbstractPlayer):
         match action.value:
             case -1:
                 player.add_card(self.deck.pop())
             case idx:
+                l = self.field[idx]
+                if not can_make_set_with(l, player.hand, is_valid_set):
+                    raise ValueError("Cannot make set with card")
+
+                elif (
+                    can_make_set_with(l, player.hand, is_valid_rank_set)
+                    and not player.can_make_rank_sets
+                ):
+                    raise ValueError("Player cannot make rank sets")
+
                 for _ in range(len(self.field) - idx):
                     player.add_card(self.field.pop())
+
+                player_sets = player.make_sets(mandatory=l)
+                self._make_sets(player_sets, player, l)
 
         chosen_discard = player.choose_discard(
             self.field,
@@ -87,7 +95,47 @@ class Game:
             raise ValueError("Chosen discard is not in player's hand")
 
         player.remove_card(chosen_discard)
-        self.field.add(chosen_discard)
+        self.field.append(chosen_discard)
+
+    def _get_winner(self) -> AbstractPlayer | None:
+        for player in self.players:
+            if len(player.hand) == 0:
+                return player
+
+        return None
+
+    def _get_opponent_hand_sizes(self) -> list[int]:
+        return [
+            len(opponent.hand)
+            for opponent in self.players
+            if opponent != self.players[self.current_player_idx]
+        ]
+
+    def _get_opponent_sets(self) -> list[Sets]:
+        return [
+            opponent.sets
+            for opponent in self.players
+            if opponent != self.players[self.current_player_idx]
+        ]
+
+    def game_loop(self):
+        winner = None
+
+        while winner is None:
+            current_player = self.current_player_idx
+            action = self.players[current_player].decide_action(
+                self.field,
+                self._get_opponent_hand_sizes(),
+                self._get_opponent_sets(),
+            )
+            self._handle_action(action, self.players[current_player])
+
+            if len(self.players[current_player].hand) == 0:
+                winner = self.players[current_player]
+
+            self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
+
+        print(f"Player {winner.name} has won!")
 
 
 def main():
@@ -95,15 +143,21 @@ def main():
     opponent = RandomPlayer("Player 2")
 
     game = Game([player, opponent])
-    game.field = {game.deck.pop() for _ in range(5)}
+    game.field = [game.deck.pop() for _ in range(5)]
     dprint(game)
 
     action = player.decide_action(
         game.field, opponent_hand_sizes=[0], opponent_sets=[set()]
     )
-    dprint(action)
-    game.handle_action(action, player)
+    dprint(f"Player 1 does {action}")
+    game._handle_action(action, player)
     dprint(game)
+
+    dprint(f"any: {can_make_set_with(game.field[-1], player.hand, is_valid_set)}")
+    dprint(f"rank: {can_make_set_with(game.field[-1], player.hand, is_valid_rank_set)}")
+    dprint(f"suit: {can_make_set_with(game.field[-1], player.hand, is_valid_suit_set)}")
+
+    dprint(f"longest: {get_longest_set(player.hand, is_valid_set)}")
 
 
 if __name__ == "__main__":

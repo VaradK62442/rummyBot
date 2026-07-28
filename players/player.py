@@ -12,6 +12,7 @@ class AbstractPlayer(ABC):
         self.name = name
         self.hand: Hand = set()
         self.sets: Sets = set()
+        self.can_make_rank_sets: bool = False
 
     def __str__(self) -> str:
         return f"{self.name}: [{', '.join(str(card) for card in self.hand)}]"
@@ -28,7 +29,7 @@ class AbstractPlayer(ABC):
         self.hand.add(card)
 
     def remove_card(self, card: Card):
-        assert card in self.hand
+        assert card in self.hand, f"Card {card} not in hand"
         self.hand.remove(card)
 
     @abstractmethod
@@ -38,6 +39,12 @@ class AbstractPlayer(ABC):
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> PlayerAction:
+        """
+        Decide the player's action based on the current game state.
+        If the player chooses to take from the field,
+        the card at the index chosen must be able to form a set with the player's hand.
+        - Validated in game._decide_action
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -51,5 +58,16 @@ class AbstractPlayer(ABC):
         Note, does not actually discard the card from player's hand.
         This is the game class' responsibility.
         Returned card must be in player's hand.
+        - Validated in self.remove_card
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def make_sets(self, mandatory: Card) -> Sets:
+        """
+        Again, this does not actually make the sets.
+        This is the game class' responsibility.
+        Exactly one of the returned sets must contain the mandatory card.
+        - Validated in game._make_sets
         """
         raise NotImplementedError
