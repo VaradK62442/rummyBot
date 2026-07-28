@@ -24,9 +24,9 @@ class RandomPlayer(AbstractPlayer):
 
     def make_sets(
         self,
-        mandatory: Card,
+        mandatory: Card | None,
     ) -> Sets:
         """
         Make all possible sets from the player's hand.
         """
-        return set()
+        return []

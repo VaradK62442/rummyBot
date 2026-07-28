@@ -11,7 +11,7 @@ class AbstractPlayer(ABC):
     def __init__(self, name: str):
         self.name = name
         self.hand: Hand = set()
-        self.sets: Sets = set()
+        self.sets: Sets = []
         self.can_make_rank_sets: bool = False
 
     def __str__(self) -> str:
@@ -31,6 +31,14 @@ class AbstractPlayer(ABC):
     def remove_card(self, card: Card):
         assert card in self.hand, f"Card {card} not in hand"
         self.hand.remove(card)
+
+    def _print_hand(self):
+        print(
+            f"Hand: {', '.join(str(card) for card in sorted(self.hand, key=lambda card: (card.suit, card.get_value())))}"
+        )
+
+    def _print_sets(self):
+        print(f"Sets: {', '.join(str(set) for set in self.sets)}")
 
     @abstractmethod
     def decide_action(
@@ -63,7 +71,7 @@ class AbstractPlayer(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def make_sets(self, mandatory: Card) -> Sets:
+    def make_sets(self, mandatory: Card | None) -> Sets:
         """
         Again, this does not actually make the sets.
         This is the game class' responsibility.

@@ -6,11 +6,17 @@ from enum import StrEnum
 
 type Hand = set[Card]
 type Set = set[Card]
-type Sets = set[set[Card]]
+type Sets = list[set[Card]]
 type Field = list[Card]
 
 DEBUG = True
 STARTING_HAND_SIZE = 7
+SUIT_ABBREVS = {
+    "C": "♣",
+    "D": "♦",
+    "H": "♥",
+    "S": "♠",
+}
 
 
 def dprint(*args):
@@ -76,7 +82,7 @@ class Card:
         return self.suit == other.suit and self.rank == other.rank
 
     def __hash__(self) -> int:
-        return hash((self.suit, self.rank))
+        return hash((self.suit, self.get_value()))
 
     def get_value(self):
         match self.rank:
@@ -112,6 +118,7 @@ DECK = [Card(suit, rank) for suit in Suit for rank in Rank]
 
 
 def score_set(card_set: Set) -> int:
+    # TODO: special Ace handling
     return sum(10 if card.get_value() >= 10 else 5 for card in card_set)
 
 
