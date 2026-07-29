@@ -78,6 +78,10 @@ class Game:
         mandatory_card = None
         match action.value:
             case -1:
+                if len(self.deck) == 0:
+                    self.deck = self.field[:]
+                    shuffle(self.deck)
+                    self.field = []
                 player.add_card(self.deck.pop())
             case idx:
                 mandatory_card = self.field[idx]
