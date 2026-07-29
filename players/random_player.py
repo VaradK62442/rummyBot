@@ -18,7 +18,7 @@ class RandomPlayer(AbstractPlayer):
         """
         choices = [-1]
 
-        if self.can_make_rank_sets:
+        if self.has_made_suit_set:
             set_check = is_valid_set
         else:
             set_check = is_valid_suit_set
@@ -40,10 +40,15 @@ class RandomPlayer(AbstractPlayer):
     def make_sets(
         self,
         mandatory: Card | None,
-    ) -> Sets:
+        opponent_sets: list[Sets],
+        opponent_names: list[str],
+    ) -> dict[str, Sets]:
         """
         Make all possible sets from the player's hand.
         """
         return get_all_sets(
-            self.hand, is_valid_set if self.can_make_rank_sets else is_valid_suit_set
+            self.hand,
+            opponent_sets,
+            opponent_names,
+            is_valid_set if self.has_made_suit_set else is_valid_suit_set,
         )

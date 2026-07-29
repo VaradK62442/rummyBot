@@ -12,7 +12,7 @@ class AbstractPlayer(ABC):
         self.name = name
         self.hand: Hand = set()
         self.sets: Sets = []
-        self.can_make_rank_sets: bool = False
+        self.has_made_suit_set: bool = False
 
     def __str__(self) -> str:
         return f"{self.name}: [{', '.join(str(card) for card in self.hand)}]"
@@ -71,9 +71,16 @@ class AbstractPlayer(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def make_sets(self, mandatory: Card | None) -> Sets:
-        # TODO: add some way to add cards to existing sets
+    def make_sets(
+        self,
+        mandatory: Card | None,
+        opponent_sets: list[Sets],
+        opponent_names: list[str],
+    ) -> dict[str, Sets]:
         """
+        Returns a dict mapping player names to a list of sets of cards.
+        - If player name is self, each set must be a valid set or be able to be added to an existing set
+        - If player name is not self, the set must be able to be added to exactly one of the opponent's sets
         Again, this does not actually make the sets.
         This is the game class' responsibility.
         Exactly one of the returned sets must contain the mandatory card.

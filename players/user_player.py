@@ -72,9 +72,11 @@ class UserPlayer(AbstractPlayer):
     def make_sets(
         self,
         mandatory: Card | None,
-    ) -> Sets:
+        opponent_sets: list[Sets],
+        opponent_names: list[str],
+    ) -> dict[str, Sets]:
         self._print_hand()
-        print("Enter the number of sets you want to make")
+        print("Enter the number of sets you want to make / add")
 
         raw_input = input()
         while not raw_input.isdigit():
@@ -82,10 +84,21 @@ class UserPlayer(AbstractPlayer):
             raw_input = input()
 
         num_sets = int(raw_input)
-        sets = []
+        sets = {name: [] for name in opponent_names + [self.name]}
 
-        for _ in range(num_sets):
-            print("Enter the cards for this set, separated by spaces")
+        for i in range(num_sets):
+            print(
+                f"Enter the name of the player to add set {i + 1} to (leave blank for self)"
+            )
+            player_name = input()
+            while player_name not in opponent_names + [self.name, ""]:
+                print("Invalid input. Please enter a player name")
+                player_name = input()
+
+            if not player_name:
+                player_name = self.name
+
+            print(f"Enter the cards for set {i + 1}, separated by spaces")
             raw_input = input()
             while not raw_input or not all(
                 self._validate_input(raw) for raw in raw_input.split()
@@ -95,7 +108,7 @@ class UserPlayer(AbstractPlayer):
                 )
                 raw_input = input()
 
-            sets.append(
+            sets[player_name].append(
                 {
                     Card(Suit(SUIT_ABBREVS[suit]), Rank(rank))
                     for rank, suit in (raw.split("/") for raw in raw_input.split())

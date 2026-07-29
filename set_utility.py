@@ -5,13 +5,12 @@ Utility methods for sets.
 from collections.abc import Callable
 from itertools import combinations
 
-from common import Card, Hand, Set
+from common import Card, Hand, Set, Sets
 
 
 def is_valid_suit_set(card_set: Set) -> bool:
-    """
-    Assume len(card_set) >= 3.
-    """
+    if len(card_set) < 3:
+        return False
 
     if len({card.suit for card in card_set}) == 1:
         ranks = sorted(card.get_value() for card in card_set)
@@ -36,9 +35,9 @@ def is_valid_suit_set(card_set: Set) -> bool:
 
 
 def is_valid_rank_set(card_set: Set) -> bool:
-    """
-    Assume len(card_set) >= 3.
-    """
+    if len(card_set) < 3:
+        return False
+
     return len({card.rank for card in card_set}) == 1
 
 
@@ -61,31 +60,55 @@ def can_make_set_with(
 
 
 def get_longest_set(
-    hand: Hand, set_check: Callable[[Set], bool] = is_valid_set
-) -> Set | None:
+    hand: Hand,
+    opponent_sets: list[Sets],
+    opponent_names: list[str],
+    set_check: Callable[[Set], bool] = is_valid_set,
+) -> tuple[Set | None, str]:
     for set_size in range(len(hand), 2, -1):
         for combination in combinations(hand, set_size):
             if set_check(set(combination)):
-                return set(combination)
+                return (set(combination), "")
 
-    return None
+    for set_size in [2, 1]:
+        for combination in combinations(hand, set_size):
+            for name, opponent_set in zip(opponent_names, opponent_sets):
+                if can_add_to_sets(set(combination), opponent_set, set_check):
+                    return (set(combination), name)
+
+    return (None, "")
 
 
 def get_all_sets(
-    hand: Hand, set_check: Callable[[Set], bool] = is_valid_set
-) -> list[Set]:
+    hand: Hand,
+    opponent_sets: list[Sets],
+    opponent_names: list[str],
+    set_check: Callable[[Set], bool] = is_valid_set,
+) -> dict[str, Sets]:
     """
     Greedy, search for longest possible set,
     remove those cards, and repeat until no more sets can be found.
     """
-    all_sets = []
+    all_sets: dict[str, Sets] = {name: [] for name in opponent_names + [""]}
     hand_copy = hand.copy()
-    while len(hand_copy) >= 3:
-        longest_set = get_longest_set(hand_copy, set_check)
+    while len(hand_copy) > 0:
+        longest_set, name = get_longest_set(
+            hand_copy, opponent_sets, opponent_names, set_check
+        )
         if longest_set is not None:
-            all_sets.append(longest_set)
+            all_sets[name].append(longest_set)
             hand_copy = hand_copy - longest_set
         else:
             break
 
     return all_sets
+
+
+def can_add_to_sets(
+    card_set: Set, sets: Sets, set_check: Callable[[Set], bool] = is_valid_set
+) -> bool:
+    for set in sets:
+        if set_check(set | card_set):
+            return True
+
+    return False

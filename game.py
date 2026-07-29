@@ -18,6 +18,7 @@ from players import AbstractPlayer
 from players.random_player import RandomPlayer
 from players.user_player import UserPlayer
 from set_utility import (
+    can_add_to_sets,
     can_make_set_with,
     is_valid_rank_set,
     is_valid_set,
@@ -27,7 +28,8 @@ from set_utility import (
 
 class Game:
     def __init__(self, players: list[AbstractPlayer]):
-        self.players = players
+        self.players = {p.name: p for p in players}
+        self.player_names = [p.name for p in players]
         self.deck = DECK[:]
         self.current_player_idx = 0
         self.field: Field = []
@@ -44,34 +46,44 @@ class Game:
 
     def deal_cards(self):
         for _ in range(STARTING_HAND_SIZE):
-            for player in self.players:
+            for player in self.players.values():
                 self._give_card(player)
 
     def add_to_field(self, card: Card):
         self.field.append(card)
 
     def _make_sets(
-        self, player_sets: Sets, player: AbstractPlayer, mandatory_card: Card | None
+        self,
+        player_sets: dict[str, Sets],
+        player: AbstractPlayer,
+        mandatory_card: Card | None,
     ):
         # check mandatory card appears in at least one set
         if mandatory_card is not None and not any(
-            mandatory_card in card_set for card_set in player_sets
+            mandatory_card in card_set
+            for card_sets in player_sets.values()
+            for card_set in card_sets
         ):
             raise ValueError(
                 f"Mandatory card {mandatory_card} not in any set in {player_sets}"
             )
 
-        for set in player_sets:
-            if not is_valid_set(set):
-                raise ValueError("Invalid set")
+        for player_name, sets in player_sets.items():
+            for set in sets:
+                if not is_valid_set(set) and not can_add_to_sets(
+                    set, self.players[player_name].sets
+                ):
+                    raise ValueError(
+                        f"Invalid set, cannot make new set nor add to specified player's sets: {self.players[player_name].sets}"
+                    )
 
-            if is_valid_suit_set(set):
-                player.can_make_rank_sets = True
+                if is_valid_suit_set(set):
+                    player.has_made_suit_set = True
 
-            player.sets.append(set)
-            for card in set:
-                # will (rightfully) error if same card is submitted in two sets
-                player.remove_card(card)
+                player.sets.append(set)
+                for card in set:
+                    # will (rightfully) error if same card is submitted in two sets
+                    player.remove_card(card)
 
     def _handle_action(self, action: PlayerAction, player: AbstractPlayer):
         print(f"{player.name} takes action: {action}")
@@ -98,20 +110,26 @@ class Game:
                         player.hand | set(self.field[idx + 1 :]),
                         is_valid_rank_set,
                     )
-                    and not player.can_make_rank_sets
+                    and not player.has_made_suit_set
                 ):
                     raise ValueError("Player cannot make rank sets")
 
                 for _ in range(len(self.field) - idx):
                     player.add_card(self.field.pop())
 
-        player_sets = player.make_sets(mandatory_card)
+        player_sets = player.make_sets(
+            mandatory_card, self._get_opponent_sets(), self._get_opponent_names()
+        )
         self._make_sets(player_sets, player, mandatory_card)
 
         chosen_discard = player.choose_discard(
             self.field,
-            [len(opponent.hand) for opponent in self.players if opponent != player],
-            [opponent.sets for opponent in self.players if opponent != player],
+            [
+                len(opponent.hand)
+                for opponent in self.players.values()
+                if opponent != player
+            ],
+            [opponent.sets for opponent in self.players.values() if opponent != player],
         )
 
         if chosen_discard not in player.hand:
@@ -121,7 +139,7 @@ class Game:
         self.field.append(chosen_discard)
 
     def _get_winner(self) -> AbstractPlayer | None:
-        for player in self.players:
+        for player in self.players.values():
             if len(player.hand) == 0:
                 return player
 
@@ -130,31 +148,31 @@ class Game:
     def _get_opponent_hand_sizes(self) -> list[int]:
         return [
             len(opponent.hand)
-            for opponent in self.players
-            if opponent != self.players[self.current_player_idx]
+            for opponent in self.players.values()
+            if opponent != self.player_names[self.current_player_idx]
         ]
 
     def _get_opponent_sets(self) -> list[Sets]:
         return [
             opponent.sets
-            for opponent in self.players
-            if opponent != self.players[self.current_player_idx]
+            for opponent in self.players.values()
+            if opponent != self.player_names[self.current_player_idx]
         ]
 
     def _get_opponent_names(self) -> list[str]:
         return [
             opponent.name
-            for opponent in self.players
-            if opponent != self.players[self.current_player_idx]
+            for opponent in self.players.values()
+            if opponent != self.player_names[self.current_player_idx]
         ]
 
     def _find_winner(self) -> list[str]:
-        scores = {player.name: player.score() for player in self.players}
+        scores = {player.name: player.score() for player in self.players.values()}
         winner_score = -math.inf
         winner_names = []
 
         for k, v in scores.items():
-            print(f"{k}: {v}")
+            print(f"{k}: {v} pts")
             if v > winner_score:
                 winner_score = v
                 winner_names = [k]
@@ -168,7 +186,7 @@ class Game:
         winner = None
 
         while winner is None:
-            current_player = self.players[self.current_player_idx]
+            current_player = self.players[self.player_names[self.current_player_idx]]
 
             print(f"Turn {turn_number} - {current_player.name}'s turn.")
             print(f"Field: {', '.join(str(card) for card in self.field)}")
@@ -197,11 +215,12 @@ class Game:
             self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
             turn_number += 1
 
-        print(f"Player {self._find_winner()} has won!")
+        print(f"Winner(s): {', '.join(self._find_winner())}")
 
 
 def main():
     seed(42)
+
     p1 = RandomPlayer("Player 1")
     p2 = RandomPlayer("Player 2")
     game = Game([p1, p2])
