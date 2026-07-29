@@ -1,4 +1,4 @@
-from players.player import AbstractPlayer
+from players.abstract_player import AbstractPlayer
 from players.random_player import RandomPlayer
 from players.user_player import UserPlayer
 

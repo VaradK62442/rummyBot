@@ -72,6 +72,7 @@ class AbstractPlayer(ABC):
 
     @abstractmethod
     def make_sets(self, mandatory: Card | None) -> Sets:
+        # TODO: add some way to add cards to existing sets
         """
         Again, this does not actually make the sets.
         This is the game class' responsibility.

@@ -1,8 +1,9 @@
-from random import choice, randint
+from random import choice
 
 from common import Card, Field, PlayerAction, Sets
+from set_utility import can_make_set_with, get_all_sets, is_valid_set, is_valid_suit_set
 
-from .player import AbstractPlayer
+from .abstract_player import AbstractPlayer
 
 
 class RandomPlayer(AbstractPlayer):
@@ -12,7 +13,21 @@ class RandomPlayer(AbstractPlayer):
         opponent_hand_sizes: list[int],
         opponent_sets: list[Sets],
     ) -> PlayerAction:
-        return PlayerAction(randint(-1, len(field) - 1))
+        """
+        Choose a random action within valid choices.
+        """
+        choices = [-1]
+
+        if self.can_make_rank_sets:
+            set_check = is_valid_set
+        else:
+            set_check = is_valid_suit_set
+
+        for i in range(len(field)):
+            if can_make_set_with(field[i], self.hand, set_check):
+                choices.append(i)
+
+        return PlayerAction(choice(choices))
 
     def choose_discard(
         self,
@@ -29,4 +44,6 @@ class RandomPlayer(AbstractPlayer):
         """
         Make all possible sets from the player's hand.
         """
-        return []
+        return get_all_sets(
+            self.hand, is_valid_set if self.can_make_rank_sets else is_valid_suit_set
+        )

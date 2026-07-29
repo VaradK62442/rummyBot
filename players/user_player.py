@@ -1,6 +1,6 @@
 from common import SUIT_ABBREVS, Card, Field, PlayerAction, Rank, Sets, Suit
 
-from .player import AbstractPlayer
+from .abstract_player import AbstractPlayer
 
 
 class UserPlayer(AbstractPlayer):
