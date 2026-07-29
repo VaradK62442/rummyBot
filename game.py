@@ -2,6 +2,7 @@
 Main game logic for the card game Rummy.
 """
 
+import math
 from random import seed, shuffle
 
 from common import (
@@ -11,9 +12,10 @@ from common import (
     Field,
     PlayerAction,
     Sets,
-    dprint,
+    # dprint,
 )
 from players import AbstractPlayer
+from players.random_player import RandomPlayer
 from players.user_player import UserPlayer
 from set_utility import (
     can_make_set_with,
@@ -72,6 +74,7 @@ class Game:
                 player.remove_card(card)
 
     def _handle_action(self, action: PlayerAction, player: AbstractPlayer):
+        print(f"{player.name} takes action: {action}")
         mandatory_card = None
         match action.value:
             case -1:
@@ -141,13 +144,29 @@ class Game:
             if opponent != self.players[self.current_player_idx]
         ]
 
+    def _find_winner(self) -> list[str]:
+        scores = {player.name: player.score() for player in self.players}
+        winner_score = -math.inf
+        winner_names = []
+
+        for k, v in scores.items():
+            print(f"{k}: {v}")
+            if v > winner_score:
+                winner_score = v
+                winner_names = [k]
+            elif v == winner_score:
+                winner_names.append(k)
+
+        return winner_names
+
     def game_loop(self):
+        turn_number = 1
         winner = None
 
         while winner is None:
             current_player = self.players[self.current_player_idx]
 
-            print(f"{current_player.name}'s turn.")
+            print(f"Turn {turn_number} - {current_player.name}'s turn.")
             print(f"Field: {', '.join(str(card) for card in self.field)}")
             current_player._print_hand()
             current_player._print_sets()
@@ -172,15 +191,16 @@ class Game:
                 winner = current_player
 
             self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
+            turn_number += 1
 
-        print(f"Player {winner.name} has won!")
+        print(f"Player {self._find_winner()} has won!")
 
 
 def main():
     seed(42)
-    p1 = UserPlayer("Player 1")
-    p2 = UserPlayer("Player 2")
-    game = Game([p1])
+    p1 = RandomPlayer("Player 1")
+    p2 = RandomPlayer("Player 2")
+    game = Game([p1, p2])
 
     game.game_loop()
 

@@ -69,3 +69,23 @@ def get_longest_set(
                 return set(combination)
 
     return None
+
+
+def get_all_sets(
+    hand: Hand, set_check: Callable[[Set], bool] = is_valid_set
+) -> list[Set]:
+    """
+    Greedy, search for longest possible set,
+    remove those cards, and repeat until no more sets can be found.
+    """
+    all_sets = []
+    hand_copy = hand.copy()
+    while len(hand_copy) >= 3:
+        longest_set = get_longest_set(hand_copy, set_check)
+        if longest_set is not None:
+            all_sets.append(longest_set)
+            hand_copy = hand_copy - longest_set
+        else:
+            break
+
+    return all_sets
